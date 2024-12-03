@@ -1,0 +1,69 @@
+seed: 0
+wandb_project: 'inr_moe_sdf'
+
+MODEL:
+  model_name: 'inr_moe_sdf' # inr_sdf | inr_moe_sdf
+  in_dim: 3
+  out_dim: 1
+  decoder_hidden_dim: 64
+  decoder_n_hidden_layers: 2
+  decoder_input_encoding: 'learned_512_2_sine_siren_none' # none | FF | PE (FF is Fourier Features, PE is Positional Encoding, dino is dino_v2 features)
+  decoder_nl: 'sine'
+  decoder_init_type: 'siren' # siren | finer | geometric_sine | geometric_relu | normal | kaiminguniform
+  n_experts: 8 # add 1 for the background
+  outermost_linear: True
+  input_encoding: 'none' # none | FF | PE , (FF is Fourier Features, PE is Positional Encoding) 
+  decoder_freqs: 30.
+  decoder_trainable_freqs: False
+  top_k: 1
+
+  manager_hidden_dim: 128
+  manager_n_hidden_layers: 2
+  manager_input_encoding: 'learned_128_2_sine_siren_none'
+  manager_nl: 'sine'
+  manager_init: 'siren' # siren | finer | geometric_sine | geometric_relu | normal | kaiminguniform
+  manager_type: 'standard' # none | standard
+  experts_bias_std: 0.1
+  experts_bias_weight: 1.0
+  manager_softmax_temperature: 1.0
+  manager_softmax_temp_trainable: False
+  manager_q_activation: 'softmax' # sigmoid | softmax | none
+  manager_clamp_q: 0.0
+  manager_conditioning: 'cat' # none | max | mean | cat
+  load_pt_manager: False
+  shared_encoder: False
+
+LOSS:
+  sdf_clamp: 3.0
+  scale_by_q_grad: False
+  # loss_type: '1000zls_1000sdf' # options: zls | sdf | inter | normal | eikonal | div | appxsdf | closestpoint |balance | segmentation, igr=1zls_1normal_0.1eikonal
+  segmentation_type: 'both' # 'ce' | 'binary_ce | both
+
+DATA:
+  dataset_path: '../data/sdf_3d'
+  name: 'sdf_3d' # basic_2d | ...
+  downsample_factor: 4
+  segmentation_type: 'random_balanced' # grid | kmeans | none | raster | random_balanced | circular | constant_grid | sam
+  grid_patch_size: 4 #powers of 2 and sqrt i.e. patch ares is A = a^2, you are specifying A
+  n_segments: 8
+
+TRAINING:
+  n_points: 10000
+  nonmnfld_sample_type: 'combined' # grid | gaussian | combined | uniform
+  grid_res: 128
+  grid_eval_res: 512
+  grid_range: 1.2
+  lr: 3.0e-5
+  lr_gamma: 0.9999
+  lr_scheduler: 'ExponentialLR' # none | ExponentialLR
+  num_epochs: 30000
+  batch_size: 1
+  num_workers: 0
+  refine_epoch: 0
+  grad_clip_norm: 10.0
+  export_vis: False
+  manager_freeze_fraction: 0.15
+  segmentation_mode: True
+  stages: [
+           {'end_iteration_frac': 1.0, 'params':'all', 'loss_type': '1000segmentation'},
+          ]

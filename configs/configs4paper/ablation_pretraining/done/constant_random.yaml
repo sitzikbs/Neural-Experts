@@ -1,0 +1,131 @@
+seed: 0
+wandb_project: 'inr_moe_rgb'
+
+MODEL:
+  model_name: 'inr_moe_rgb' # inr_rgb | inr_moe_rgb | inr_sparsemoe_rgb |inr_sparseidfmoe_rgb
+  in_dim: 2
+  out_dim: 3
+  decoder_hidden_dim: 128
+  decoder_n_hidden_layers: 2
+  decoder_input_encoding: 'learned_128_2_sine_siren_none' # none | FF | PE | dino | learned_hiddendim_layers_activation_init_encoding e.g. learned_256_1_gaussian_normal_none , (FF is Fourier Features, PE is Positional Encoding, dino is dino_v2 features)
+  decoder_nl: 'sine'
+  decoder_init_type: 'siren' # siren | geometric_sine | geometric_relu | mfgi | planar | planar_and_sphere | normal | pt | gaussianchamin | sincuniform
+  decoder_pt_path: '/home/sitzikbs/PycharmProjects/DiGS_MOE/DiGS/pretrained_models/horizontal_line_4_32_softplus_1000zls_1000sdf_1eik_20k_iters.pth'
+  n_experts: 4 # add 1 for the background
+  outermost_linear: True
+  decoder_init_r: 0.5
+  decoder_freqs: 30.
+  decoder_trainable_freqs: False
+  top_k: 1
+
+  manager_hidden_dim: 128
+  manager_n_hidden_layers: 2
+  manager_input_encoding: 'learned_128_2_sine_siren_none'
+  manager_nl: 'sine'
+  manager_init: 'siren' # normal | planar | planar_and_sphere | geometric_sine | geometric_relu | mfgi | siren | multihead_geometric_relu | geometric_relu_flip | geometric_sine_flip | manager_uniform | kaiminguniform | sincuniform
+  centroid_type: 'random' # fps | random | best_fit | segmented
+  manager_type: 'constant_grid' # pointnet | none | standard | multihead | basic (for sparsemoe) | baseline | informed | constant_grid
+  manager_bias: 'none' # none | centroids | grid | consistentrandom | consistentskipgrid
+  experts_bias_std: 0.1
+  experts_bias_weight: 1.0
+  pointnet_n_points: 1024
+  manager_init_r: 1.0
+  manager_softmax_temperature: 1.0
+  manager_softmax_temp_trainable: False
+  manager_use_lipschitz: False
+  manager_q_activation: 'softmax' # sigmoid | softmax | none | sine | cdfgaussian | softplus | gumblesoftmax |smoothsoftmax
+  manager_smoothsoftmax_alpha: 0.5
+  manager_clamp_q: 0.0
+  manager_noisy_gating: False
+  manager_conditioning: 'cat' # none | max | mean | cat | | CNN | FCN | expert_weights
+  manager_mixing: False #mixing requires that the manager and experts have a different encoder with the same number of layers
+  manager_do: False
+  manager_pt_path: '/home/sitzikbs/PycharmProjects/DiGS_MOE/DiGS/pretrained_managers/pt_inr_moe_e4_128x2_128x2_sine_siren_m128x2_128x2_sine_siren_3000.pth'
+  load_pt_manager: False
+  shared_encoder: False
+  gaussian_std: 0.05
+  prob_std: 0.2
+  manager_gt_input_sanitycheck: False
+  manager_aux_branch_hidden_dim: 1
+  grid_patch_size: 4096 #powers of 2 and sqrt i.e. patch ares is A = a^2, you are specifying A
+
+  encoder_type: 'none' #none | pointnet
+  encoder_hidden_dim: 8
+  latent_size: 0
+  sphere_init_params: [1.6, 0.1]
+  planar_init_params: {'centroids': null, 'normals': null, 'idx': null, 'dim': null}
+  use_hashtable: False
+  aux_type: 'img'
+
+LOSS:
+  div_metric_type: 'l1' # l1 | l2
+  normal_metric_type: 'cos'
+  eikonal_metric_type: 'l1'
+  appxsdf_metric_type: 'l2'
+  div_clamp: 50
+  sdf_clamp: 1.0
+  div_decay_type: 'linear' # none | step | linear | quintic
+  div_decay_params: [ 100, 0.2, 100, 0.4, 0.0, 0.0 ]
+#  loss_weights: [ 3000, 100, 100, 5, 100 ] # sdf | inter | normal | eikonal | div
+  scale_by_q_grad: False
+  loss_type: '1000rgbrecon' # options: rgbrecon |  balance | clustering | segmentation |eikonal | qentropy | load | sumtoone
+  sample_bias_correction: False
+  appxsdf_threshold: 0.01
+  entropy_metric: 'kl' # kl | entropy
+  segmentation_type: 'both' # 'ce' | 'binary_ce | both
+
+
+DATA:
+  dataset_path: '../data'
+#  dataset_path: '/home/sitzikbs/Datasets/TESTIMAGES/SAMPLING/16BIT/RGB/1200x1200/B01C00'
+  name: 'RGBINR' # RGBINR | ...
+  downsample_factor: 4
+  segmentation_type: 'random_balanced' # grid | kmeans | none | raster | random_balanced | circular | constant_grid | sam
+  grid_patch_size: 1 #powers of 2 and sqrt i.e. patch ares is A = a^2, you are specifying A
+  kmeansspace: 'rgb' # rgbxy | rgb
+  n_segments: 4
+  get_dino: False
+  copy_to_gpu: False #TODO fix this, deprecated, moved the data copy to outside the loop
+  sam_model_type: "vit_h"
+  sam_checkpoint: '/home/sitzikbs/PycharmProjects/pt_models/sam/sam_vit_h_4b8939.pth'
+
+TRAINING:
+  n_points: 10000
+  nonmnfld_sample_type: 'combined' # grid | gaussian | combined | uniform
+  grid_res: 256
+  lr: 1.0e-5
+#  lr: {'all': 1.0e-5, 'experts': 1.0e-5, 'manager':1.0e-5}
+  lr_gamma: 0.9999
+  lr_scheduler: 'ExponentialLR' # none | ExponentialLR
+  num_epochs: 30000
+  batch_size: 1
+  num_workers: 0
+  refine_epoch: 0
+  grad_clip_norm: 10.0
+  normalize_normal_loss: False
+  unsigned_n: True
+  unsigned_d: False
+  export_vis: False
+  manager_freeze_fraction: 0.15
+  n_loss_type: 'cos'
+  inter_loss_type: 'exp' # exp | unsigned_diff | signed_diff
+  sampler_prob: 'none' # none | div | curl
+  refine_q_boundaries: False
+  refine_q_boundaries_every: 10
+  save_reconstructed_imgs: False
+  stages: [ # rgbrecon |  balance | clustering | segmentation |eikonal | qentropy | load | sumtoone
+           {'end_iteration_frac': 0.8, 'params':'all', 'loss_type': '1000rgbrecon'},
+           {'end_iteration_frac': 1.0, 'params':'experts', 'loss_type': '1000rgbrecon'},
+          ]
+
+
+TESTING:
+  epoch_n_eval: [0, 30000, 100]
+  plot_second_derivs: False
+  batch_size: 1
+  num_workers: 1
+  n_points: 256
+  n_samples: 1
+  grid_res: 128
+  nonmnfld_sample_type: 'grid' # grid | gaussian | combined
+  plot_q_grad: False
